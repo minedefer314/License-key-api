@@ -1,0 +1,69 @@
+name: 'license-key-api'
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: ./build/nginx/Dockerfile
+    image: ${COMPOSE_PROJECT_NAME}-nginx
+    container_name: ${COMPOSE_PROJECT_NAME}-nginx
+    volumes:
+      - type: bind
+        source: ./api
+        target: /app/api
+    depends_on:
+      - api
+    ports:
+      - 8000:80
+    networks:
+      - network
+
+  api:
+    build:
+      args:
+        USER_ID: ${USER_ID:-0}
+        GROUP_ID: ${GROUP_ID:-0}
+        USER_NAME: ${USER_NAME:-0}
+        GROUP_NAME: ${GROUP_NAME:-0}
+      context: .
+      dockerfile: ./build/api/Dockerfile
+    image: ${COMPOSE_PROJECT_NAME}-api
+    container_name: ${COMPOSE_PROJECT_NAME}-api
+    volumes:
+      - type: bind
+        source: ./api
+        target: /app/api
+    #command: sh -c 'composer install --no-interaction --optimize-autoloader && php-fpm'
+    depends_on:
+      - database
+    networks:
+      - network
+
+  database:
+    build:
+      context: .
+      dockerfile: ./build/database/Dockerfile
+    image: ${COMPOSE_PROJECT_NAME}-database
+    container_name: ${COMPOSE_PROJECT_NAME}-database
+    ports:
+      - 3306:3306
+    volumes:
+      - type: volume
+        source: database-volume
+        target: /var/lib/mysql
+    environment:
+      MYSQL_DATABASE: dbapi
+      MYSQL_ROOT_PASSWORD: rdbapi
+      MYSQL_USER: udbapi
+      MYSQL_PASSWORD: pdbapi
+    networks:
+      - network
+
+networks:
+  network:
+    name : ${COMPOSE_PROJECT_NAME}-network
+    driver: bridge
+
+volumes:
+  database-volume:
+    driver: local
