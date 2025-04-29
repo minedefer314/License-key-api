@@ -11,9 +11,11 @@ class PayloadDecryptionService
         $this->privateKey = openssl_pkey_get_private($privateKey);
     }
 
-    public function decryptPayload(string $payload, string $cryptedKey, string $iv): array
+    public function decryptPayload(string $payload, string $cryptedKey, string $iv): ?array
     {
-        openssl_private_decrypt(base64_decode($cryptedKey), $this->aesKey, $this->privateKey, OPENSSL_PKCS1_OAEP_PADDING);
+        $isSuccess = openssl_private_decrypt(base64_decode($cryptedKey), $this->aesKey, $this->privateKey, OPENSSL_PKCS1_OAEP_PADDING);
+
+        if(!$isSuccess) return null;
 
         $decryptedData = openssl_decrypt(
             base64_decode($payload),
@@ -22,6 +24,8 @@ class PayloadDecryptionService
             OPENSSL_RAW_DATA,
             base64_decode($iv)
         );
+
+        if($decryptedData === false) return null;
 
         return json_decode($decryptedData, true);
     }
