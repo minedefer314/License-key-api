@@ -15,4 +15,9 @@ class LicenseRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, License::class);
     }
+
+    public function findByLicenseKey(string $licenseKey): ?License
+    {
+        return $this->findOneBy(["uuid" => $licenseKey]);
+    }
 }

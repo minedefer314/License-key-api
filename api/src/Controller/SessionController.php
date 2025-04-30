@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\DTO\RequestDataDTO;
+use App\DTO\RequestDTO;
+use App\Entity\Session;
 use App\Repository\LicenseRepository;
 use App\Service\PayloadDecryptionService;
-use App\DTO\CreateSessionRequest;
+use App\Validator\LicenseValidity\IsValidLicense;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,42 +23,81 @@ final class SessionController extends AbstractController
         PayloadDecryptionService $decryptionService,
         LicenseRepository $licenseRepository,
         ValidatorInterface $validator,
-    ): JsonResponse {
-
+    ): JsonResponse
+    {
         // Construct DTO using request data
         $data = json_decode($request->getContent(), true);
-        $dto = new CreateSessionRequest();
-        $dto->payload = $data['payload'] ?? '';
-        $dto->key = $data['key'] ?? '';
-        $dto->iv = $data['iv'] ?? '';
+        $requestDTO = new RequestDTO();
+        $requestDTO->payload = $data['payload'] ?? '';
+        $requestDTO->key = $data['key'] ?? '';
+        $requestDTO->iv = $data['iv'] ?? '';
 
         // Validate DTO
-        $errors = $validator->validate($dto);
-        if (count($errors) > 0) {
-            return $this->json([
-                'message' => 'Invalid request.',
-                'errors' => (string) $errors
-            ], Response::HTTP_BAD_REQUEST);
+        $error = $validator->validate($requestDTO)[0] ?? null;
+        if ($error) {
+            return new JsonResponse(
+                [
+                    'status' => Response::HTTP_BAD_REQUEST,
+                    'message' => $error->getMessage()
+                ],
+                Response::HTTP_BAD_REQUEST
+            );
         }
 
         // Attempt to decrypt data using validated DTO
-        $data = $decryptionService->decryptPayload($dto->payload, $dto->key, $dto->iv);
-        if(!$data)
-            return new JsonResponse(["message" => "Invalid RSA encoding or AES key."], Response::HTTP_BAD_REQUEST);
+        $data = $decryptionService->decryptPayload(
+            payload: $requestDTO->payload,
+            cryptedKeyBase64: $requestDTO->key,
+            ivBase64: $requestDTO->iv
+        );
 
-        // Check data validity
-        if (
-            !isset($data["expiresAt"])      ||     // More attributes to add
-            !isset($data["license_key"])
-        ) return new JsonResponse(["message" => "Invalid payload."], Response::HTTP_BAD_REQUEST);
+        if(is_string($data))
+            return new JsonResponse(
+                [
+                    "status" => Response::HTTP_BAD_REQUEST,
+                    "message" => $data
+                ],
+                Response::HTTP_BAD_REQUEST
+            );
 
-        if (!is_numeric($data["expiresAt"]) || $data["expiresAt"] < time())
-            return new JsonResponse(["message" => "Expired payload."], Response::HTTP_BAD_REQUEST);
+        // Construct DTO using request payload
+        $requestDataDTO = new RequestDataDTO();
+        $requestDataDTO->expiresAt = $data['expiresAt'] ?? '';
+        $requestDataDTO->licenseKey = $data['licenseKey'] ?? '';
 
-        // TODO: check license key validity
-        // TODO: checks to prevent 2 sessions on same license
+        // Validate DTO
+        $error = $validator->validate($requestDataDTO)[0] ?? null;
+
+        if ($error) {
+            $responseCode = match ($error->getCode()) {
+                IsValidLicense::class => Response::HTTP_NOT_FOUND,
+                default => Response::HTTP_BAD_REQUEST,
+            };
+
+            return new JsonResponse(
+                ['message' => $error->getMessage()],
+                $responseCode
+            );
+        }
+
+        # Search for license using given key
+        $license = $licenseRepository->findByLicenseKey($data["license_key"]);
+
+        // Make sure the found license doesn't already have an active session
+        if($license->getSessions()->filter(function (Session $session) {
+            return $session->isActive();
+        })->count() > 0)
+            return new JsonResponse(
+                ["message" => "This license already has an active session."],
+                Response::HTTP_CONFLICT
+            );
+
         // TODO: additional checks to prevent license key sharing
+        // TODO: session creation
 
-        return new JsonResponse("", Response::HTTP_CREATED);
+        return new JsonResponse(
+            ["message" => "Session allowed."],
+            Response::HTTP_CREATED
+        );
     }
 }

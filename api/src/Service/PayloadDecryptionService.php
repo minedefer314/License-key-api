@@ -7,25 +7,57 @@ class PayloadDecryptionService
     private \OpenSSLAsymmetricKey $privateKey;
     private ?string $aesKey = null;
 
-    public function __construct($privateKey) {
-        $this->privateKey = openssl_pkey_get_private($privateKey);
+    private ?string $aesIV = null;
+
+    public function __construct($private_key) {
+        $loadedPrivateKey = openssl_pkey_get_private($private_key);
+
+        if ($loadedPrivateKey === false) {
+            throw new \RuntimeException('Failed to load private key : ' . $private_key);
+        }
+
+        $this->privateKey = $loadedPrivateKey;
     }
 
-    public function decryptPayload(string $payload, string $cryptedKey, string $iv): ?array
+    private function setIV(string $ivBase64): true|string
     {
-        $isSuccess = openssl_private_decrypt(base64_decode($cryptedKey), $this->aesKey, $this->privateKey, OPENSSL_PKCS1_OAEP_PADDING);
+        $iv = base64_decode($ivBase64);
+        if($iv === false)
+            return "IV must be base64 encoded.";
+        else if (strlen($iv) !== 16)
+            return "Invalid IV.";
 
-        if(!$isSuccess) return null;
+        $this->aesIV = $iv;
+        return true;
+    }
 
-        $decryptedData = openssl_decrypt(
-            base64_decode($payload),
-            'aes-256-cbc',
-            $this->aesKey,
-            OPENSSL_RAW_DATA,
-            base64_decode($iv)
-        );
+    public function decryptPayload(string $payload, string $cryptedKeyBase64, string $ivBase64): string|array
+    {
+        // Tested
+        $isSuccess = openssl_private_decrypt(base64_decode($cryptedKeyBase64), $this->aesKey, $this->privateKey);
 
-        if($decryptedData === false) return null;
+        if(!$isSuccess)
+            return "Invalid RSA encryption.";
+
+        // Not tested
+        $isSuccess = $this->setIV($ivBase64);
+        if(is_string($isSuccess))
+            return $isSuccess;
+
+        try {
+            $decryptedData = openssl_decrypt(
+                data: base64_decode($payload),
+                cipher_algo: 'aes-256-cbc',
+                passphrase: $this->aesKey,
+                options: OPENSSL_RAW_DATA,
+                iv: $this->aesIV
+            );
+            if($decryptedData === false)
+                return "Invalid AES encryption.";
+        }
+        catch(\Exception $e) {
+            return "Failed AES decryption.";
+        }
 
         return json_decode($decryptedData, true);
     }

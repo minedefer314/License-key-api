@@ -6,6 +6,7 @@ use App\Repository\LocationRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LocationRepository::class)]
 class Location
@@ -16,7 +17,9 @@ class Location
     private ?int $id = null;
 
     #[ORM\Column(length: 15)]
-    private ?string $ipAddr = null;
+    #[Assert\NotBlank]
+    #[Assert\Ip]
+    private readonly string $ipAddr;
 
     /**
      * @var Collection<int, Session>
@@ -24,9 +27,10 @@ class Location
     #[ORM\OneToMany(targetEntity: Session::class, mappedBy: 'location')]
     private Collection $sessions;
 
-    public function __construct()
+    public function __construct(string $ipAddr)
     {
         $this->sessions = new ArrayCollection();
+        $this->ipAddr = $ipAddr;
     }
 
     public function getId(): ?int
@@ -34,16 +38,9 @@ class Location
         return $this->id;
     }
 
-    public function getIpAddr(): ?string
+    public function getIpAddr(): string
     {
         return $this->ipAddr;
-    }
-
-    public function setIpAddr(string $ipAddr): static
-    {
-        $this->ipAddr = $ipAddr;
-
-        return $this;
     }
 
     /**
@@ -58,7 +55,6 @@ class Location
     {
         if (!$this->sessions->contains($session)) {
             $this->sessions->add($session);
-            $session->setLocation($this);
         }
 
         return $this;
@@ -66,12 +62,7 @@ class Location
 
     public function removeSession(Session $session): static
     {
-        if ($this->sessions->removeElement($session)) {
-            // set the owning side to null (unless already changed)
-            if ($session->getLocation() === $this) {
-                $session->setLocation(null);
-            }
-        }
+        $this->sessions->removeElement($session);
 
         return $this;
     }

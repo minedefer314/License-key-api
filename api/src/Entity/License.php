@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LicenseRepository::class)]
 class License
@@ -18,10 +19,12 @@ class License
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank]
+    #[Assert\Length(max: 255)]
     private ?string $owner = null;
 
-    #[ORM\Column(type: Types::GUID)]
-    private ?string $uuid = null;
+    #[ORM\Column(type: Types::GUID, unique: true)]
+    private readonly string $uuid;
 
     /**
      * @var Collection<int, Session>
@@ -52,7 +55,7 @@ class License
         return $this;
     }
 
-    public function getUuid(): ?string
+    public function getUuid(): string
     {
         return $this->uuid;
     }
@@ -69,7 +72,6 @@ class License
     {
         if (!$this->sessions->contains($session)) {
             $this->sessions->add($session);
-            $session->setLicense($this);
         }
 
         return $this;
@@ -77,12 +79,7 @@ class License
 
     public function removeSession(Session $session): static
     {
-        if ($this->sessions->removeElement($session)) {
-            // set the owning side to null (unless already changed)
-            if ($session->getLicense() === $this) {
-                $session->setLicense(null);
-            }
-        }
+        $this->sessions->removeElement($session);
 
         return $this;
     }

@@ -16,29 +16,35 @@ class Session
 
     #[ORM\ManyToOne(inversedBy: 'sessions')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?License $license = null;
+    private readonly License $license;
 
     #[ORM\ManyToOne(inversedBy: 'sessions')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Location $location = null;
+    private readonly Location $location;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
-    private ?\DateTimeImmutable $date;
+    private readonly \DateTimeImmutable $date;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
-    private ?\DateTimeInterface $lastUpdated;
+    private \DateTimeInterface $lastUpdated;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $endDate = null;
 
     #[ORM\Column]
-    private ?bool $isActive;
+    private bool $active = true;
 
-    public function __construct()
+    public function __construct(License $license, Location $location)
     {
-        $this->date = new \DateTimeImmutable();
-        $this->isActive = true;
-        $this->lastUpdated = new \DateTime();
+        $tz = new \DateTimeZone('UTC');
+        $this->date = new \DateTimeImmutable('now', $tz);
+        $this->lastUpdated = new \DateTime('now', $tz);
+
+        $this->license = $license;
+        $license->addSession($this);
+
+        $this->location = $location;
+        $location->addSession($this);
     }
 
     public function getId(): ?int
@@ -46,43 +52,29 @@ class Session
         return $this->id;
     }
 
-    public function getLicense(): ?License
+    public function getLicense(): License
     {
         return $this->license;
     }
 
-    public function setLicense(?License $license): static
-    {
-        $this->license = $license;
-
-        return $this;
-    }
-
-    public function getLocation(): ?Location
+    public function getLocation(): Location
     {
         return $this->location;
     }
 
-    public function setLocation(?Location $location): static
-    {
-        $this->location = $location;
-
-        return $this;
-    }
-
-    public function getDate(): ?\DateTimeInterface
+    public function getDate(): \DateTimeInterface
     {
         return $this->date;
     }
 
-    public function getLastUpdated(): ?\DateTimeInterface
+    public function getLastUpdated(): \DateTimeInterface
     {
         return $this->lastUpdated;
     }
 
     public function updateLastUpdated(): static
     {
-        $this->lastUpdated = new \DateTime();
+        $this->lastUpdated = new \DateTime('now', new \DateTimeZone('UTC'));
 
         return $this;
     }
@@ -92,18 +84,21 @@ class Session
         return $this->endDate;
     }
 
-    public function isActive(): ?bool
+    public function isActive(): bool
     {
-        return $this->isActive;
+        return $this->active;
     }
 
     public function terminate(): static
     {
-        if(!$this->isActive) return $this;
+        if (!$this->active) {
+            return $this;
+        }
 
-        $this->isActive = false;
-        $this->lastUpdated = new \DateTime();
-        $this->endDate = new \DateTimeImmutable();
+        $this->active = false;
+        $tz = new \DateTimeZone('UTC');
+        $this->lastUpdated = new \DateTime('now', $tz);
+        $this->endDate = new \DateTimeImmutable('now', $tz);
 
         return $this;
     }
