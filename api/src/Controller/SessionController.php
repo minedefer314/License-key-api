@@ -80,7 +80,7 @@ final class SessionController extends AbstractController
             );
         }
 
-        # Search for license using given key
+        // Search for license using given key
         $license = $licenseRepository->findByLicenseKey($data["license_key"]);
 
         // Make sure the found license doesn't already have an active session
