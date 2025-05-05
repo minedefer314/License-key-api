@@ -22,7 +22,6 @@ class IsValidLicenseValidator extends ConstraintValidator
 
         if (!$this->licenseRepository->findByLicenseKey($value)) {
             $this->context->buildViolation($constraint->message)
-                ->setParameter('{{ key }}', $value)
                 ->addViolation();
         }
     }

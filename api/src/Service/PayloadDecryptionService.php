@@ -2,30 +2,29 @@
 
 namespace App\Service;
 
-class PayloadDecryptionService
+class PayloadDecryptionService extends EncryptionService
 {
-    private \OpenSSLAsymmetricKey $privateKey;
     private ?string $aesKey = null;
 
     private ?string $aesIV = null;
 
-    public function __construct($private_key) {
-        $loadedPrivateKey = openssl_pkey_get_private($private_key);
-
-        if ($loadedPrivateKey === false) {
-            throw new \RuntimeException('Failed to load private key : ' . $private_key);
-        }
-
-        $this->privateKey = $loadedPrivateKey;
+    public function __construct($privateKey)
+    {
+        parent::__construct($privateKey);
     }
 
     private function setIV(string $ivBase64): true|string
     {
-        $iv = base64_decode($ivBase64);
+        $iv = base64_decode($ivBase64, true);
         if($iv === false)
-            return "IV must be base64 encoded.";
+            return "IV is not base64 encoded.";
+
+        if (mb_check_encoding($iv, 'ASCII') && !preg_match('/[^\x00-\x7F]/', $iv)) {
+            return "IV is not binary.";
+        }
+
         else if (strlen($iv) !== 16)
-            return "Invalid IV.";
+            return "Invalid IV length.";
 
         $this->aesIV = $iv;
         return true;
@@ -59,6 +58,10 @@ class PayloadDecryptionService
             return "Failed AES decryption.";
         }
 
-        return json_decode($decryptedData, true);
+        $dataArray = json_decode($decryptedData, true);
+        if($dataArray === null)
+            return "Data is not valid json.";
+
+        return $dataArray;
     }
 }

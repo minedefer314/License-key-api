@@ -7,13 +7,18 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class RequestDataDTO
 {
-    #[Assert\NotBlank(message: 'An expiration timestamp is required.')]
-    #[Assert\Type(type: 'integer', message: 'The expiration timestamp must be an integer.')]
-    #[IsExpiredTimestamp(message: 'The payload is expired.')]
-    public int $expiresAt;
+    #[Assert\NotBlank(message: 'The expiration timestamp is missing.')]
+    #[Assert\Type(type: 'string', message: 'The expiration timestamp is not a string.')]
+    #[IsExpiredTimestamp]
+    public string $expiresAt;
 
-    #[Assert\NotBlank(message: 'A license key is required.')]
-    #[Assert\Type(type: 'string', message: 'The license key must be a string.')]
-    #[IsValidLicense(message: 'The license key is invalid.')]
+    #[Assert\NotBlank(message: 'The license key is missing.')]
+    #[Assert\Type(type: 'string', message: 'The license key is not a string.')]
+    #[IsValidLicense]
     public string $licenseKey;
+
+    #[Assert\NotBlank(message: 'The ip address is missing.')]
+    #[Assert\Type(type: 'string', message: 'The provided ip address is not a string.')]
+    #[Assert\Ip(message: 'The provided ip address is invalid.')]
+    public string $ipAddress;
 }

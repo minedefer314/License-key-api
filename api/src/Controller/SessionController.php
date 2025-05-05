@@ -64,6 +64,7 @@ final class SessionController extends AbstractController
         $requestDataDTO = new RequestDataDTO();
         $requestDataDTO->expiresAt = $data['expiresAt'] ?? '';
         $requestDataDTO->licenseKey = $data['licenseKey'] ?? '';
+        $requestDataDTO->ipAddress = $data['ipAddress'] ?? '';
 
         // Validate DTO
         $error = $validator->validate($requestDataDTO)[0] ?? null;
@@ -81,7 +82,7 @@ final class SessionController extends AbstractController
         }
 
         // Search for license using given key
-        $license = $licenseRepository->findByLicenseKey($data["license_key"]);
+        $license = $licenseRepository->findByLicenseKey($requestDataDTO->licenseKey);
 
         // Make sure the found license doesn't already have an active session
         if($license->getSessions()->filter(function (Session $session) {

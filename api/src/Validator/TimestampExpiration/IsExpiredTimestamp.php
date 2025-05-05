@@ -7,5 +7,5 @@ use Symfony\Component\Validator\Constraint;
 #[\Attribute]
 class IsExpiredTimestamp extends Constraint
 {
-    public string $message = 'The timestamp {{ timestamp }} is expired.';
+    public string $message = 'The payload is expired.';
 }

@@ -13,13 +13,12 @@ class IsExpiredTimestampValidator extends ConstraintValidator
             throw new \LogicException('Invalid constraint type.');
         }
 
-        if (!is_int($value)) {
+        if (!is_string($value) || $value === '') {
             return;
         }
 
-        if($value < time()) {
+        if(intval($value) < time()) {
             $this->context->buildViolation($constraint->message)
-                ->setParameter('{{ timestamp }}', (string) $value)
                 ->addViolation();
         }
     }
