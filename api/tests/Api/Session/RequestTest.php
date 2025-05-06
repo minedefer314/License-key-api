@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tests\Api\CreateSession;
+namespace App\Tests\Api\Session;
 
-use App\Service\EncryptionService;
+use App\Service\Encryption\EncryptionService;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 class RequestTest extends WebTestCase
@@ -22,7 +22,6 @@ class RequestTest extends WebTestCase
         string $payload,
         string $key,
         string $iv,
-        int $expectedCode,
         string $expectedMessage
     ): void
     {
@@ -40,7 +39,7 @@ class RequestTest extends WebTestCase
             )
         );
 
-        $this->assertResponseStatusCodeSame($expectedCode);
+        $this->assertResponseStatusCodeSame(400);
         $this->assertResponseHeaderSame('Content-Type', 'application/json');
 
         $content = $client->getResponse()->getContent();
@@ -61,7 +60,6 @@ class RequestTest extends WebTestCase
             payload: "",
             key: "",
             iv: "",
-            expectedCode: 400,
             expectedMessage: "A data payload is required."
         );
     }
@@ -76,7 +74,6 @@ class RequestTest extends WebTestCase
             payload: "lol",
             key: "lol",
             iv: "lol",
-            expectedCode: 400,
             expectedMessage: "Invalid RSA encryption."
         );
     }
@@ -93,7 +90,6 @@ class RequestTest extends WebTestCase
             payload: "lol",
             key: base64_encode($encryptedAesKey),
             iv: "$",
-            expectedCode: 400,
             expectedMessage: "IV is not base64 encoded."
         );
     }
@@ -109,7 +105,6 @@ class RequestTest extends WebTestCase
             payload: "lol",
             key: base64_encode($encryptedAesKey),
             iv: base64_encode("hello"),
-            expectedCode: 400,
             expectedMessage: "IV is not binary."
         );
     }
@@ -125,7 +120,6 @@ class RequestTest extends WebTestCase
             payload: "lol",
             key: base64_encode($encryptedAesKey),
             iv: base64_encode(random_bytes(32)),
-            expectedCode: 400,
             expectedMessage: "Invalid IV length."
         );
     }
@@ -142,7 +136,6 @@ class RequestTest extends WebTestCase
             payload: "lol",
             key: base64_encode($encryptedAes),
             iv: base64_encode(random_bytes(16)),
-            expectedCode: 400,
             expectedMessage: "Invalid AES encryption."
         );
     }

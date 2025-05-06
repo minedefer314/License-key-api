@@ -72,7 +72,7 @@ class Session
         return $this->lastUpdated;
     }
 
-    public function updateLastUpdated(): static
+    public function update(): static
     {
         $this->lastUpdated = new \DateTime('now', new \DateTimeZone('UTC'));
 

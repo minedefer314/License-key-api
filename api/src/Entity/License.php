@@ -68,6 +68,16 @@ class License
         return $this->sessions;
     }
 
+    public function getActiveSession(): ?Session
+    {
+        $activeSession = $this->sessions->filter(function (Session $session) {
+            return $session->isActive();
+        })->first();
+
+        if(!$activeSession) return null;
+        return $activeSession;
+    }
+
     public function addSession(Session $session): static
     {
         if (!$this->sessions->contains($session)) {

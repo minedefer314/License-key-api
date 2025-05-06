@@ -1,9 +1,12 @@
 <?php
 
-namespace App\Tests\Api\CreateSession;
+namespace App\Tests\Api\Session;
 
 use App\Entity\License;
-use App\Service\EncryptionService;
+use App\Repository\LicenseRepository;
+use App\Repository\LocationRepository;
+use App\Repository\SessionRepository;
+use App\Service\Encryption\EncryptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -11,13 +14,45 @@ class RequestDataTest extends WebTestCase
 {
     private EntityManagerInterface $entityManager;
     private EncryptionService $encryptionService;
+    private SessionRepository $sessionRepository;
+    private LicenseRepository $licenseRepository;
+    private LocationRepository $locationRepository;
 
+    private function purgeDatabase(): void
+    {
+        if ($_ENV['APP_ENV'] !== 'test') {
+            return;
+        }
+
+        $sessions = $this->sessionRepository->findAll();
+        foreach ($sessions as $session) {
+            $this->entityManager->remove($session);
+        }
+
+        $licenses = $this->licenseRepository->findAll();
+        foreach ($licenses as $license) {
+            $this->entityManager->remove($license);
+        }
+
+        $locations = $this->locationRepository->findAll();
+        foreach ($locations as $location) {
+            $this->entityManager->remove($location);
+        }
+
+        $this->entityManager->flush();
+    }
 
     public function setUp(): void
     {
         parent::setUp();
         $client = static::createClient();
+
         $this->entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $this->sessionRepository = static::getContainer()->get(SessionRepository::class);
+        $this->licenseRepository = static::getContainer()->get(LicenseRepository::class);
+        $this->locationRepository = static::getContainer()->get(LocationRepository::class);
+        $this->purgeDatabase();
+
         $privateKey = $client->getContainer()->getParameter('PRIVATE_KEY');
         $this->encryptionService = new EncryptionService($privateKey);
     }
@@ -311,7 +346,7 @@ class RequestDataTest extends WebTestCase
             key: base64_encode($encryptedAes),
             iv: base64_encode($binaryIv),
             expectedCode: 201,
-            expectedMessage: "Session allowed."
+            expectedMessage: "Session created."
         );
     }
 }

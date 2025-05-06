@@ -18,6 +18,10 @@ class LicenseRepository extends ServiceEntityRepository
 
     public function findByLicenseKey(string $licenseKey): ?License
     {
-        return $this->findOneBy(["uuid" => $licenseKey]);
+        return $this->createQueryBuilder('l')
+            ->where('l.uuid = :licenseKey')
+            ->setParameter('licenseKey', $licenseKey)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

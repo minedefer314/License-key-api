@@ -15,4 +15,13 @@ class LocationRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Location::class);
     }
+
+    public function findByIp(string $ipAddress): ?Location
+    {
+        return $this->createQueryBuilder('l')
+            ->where('l.ipAddr = :ipAddress')
+            ->setParameter('ipAddress', $ipAddress)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

@@ -20,7 +20,7 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
-    App\Service\PayloadDecryptionService:
+    App\Service\Encryption\PayloadDecryptionService:
         arguments:
             $privateKey: '%env(resolve:base64:RSA_PRIVATE_KEY_BASE64)%'
 
