@@ -33,37 +33,6 @@ class SessionManagementService
         $this->entityManager = $entityManager;
     }
 
-
-    // TODO: Add verifications to prevent license key sharing
-    public function processCreationRequest(array $requestBody): string
-    {
-        // Validate the json request (attributes, encryption)
-        $requestDTO = $this->validateRequest($requestBody);
-
-        // Decrypt and extract data from the request payload attribute
-        $data = $this->getDataFromRequest($requestDTO);
-
-        // Validate the extracted data (attributes, expiration, license validity)
-        $requestDataDTO = $this->validateRequestData($data);
-
-        // Attempt to create a new session or update an existant session and return the operation processed (created or updated)
-        return $this->createUpdateSession($requestDataDTO);
-    }
-
-    public function processTerminationRequest(array $requestBody): void
-    {
-        // Validate the json request (attributes, encryption)
-        $requestDTO = $this->validateRequest($requestBody);
-
-        // Decrypt and extract data from the request payload attribute
-        $data = $this->getDataFromRequest($requestDTO);
-
-        // Validate the extracted data (attributes, expiration, license validity)
-        $requestDataDTO = $this->validateRequestData($data);
-
-        $this->terminateSession($requestDataDTO);
-    }
-
     private function validateRequest(array $requestBody): RequestDTO
     {
         $requestDTO = new RequestDTO();
@@ -144,5 +113,36 @@ class SessionManagementService
 
         $activeSession->terminate();
         $this->entityManager->flush();
+    }
+
+    public function processCreationRequest(array $requestBody): string
+    {
+        // Validate the json request (attributes, encryption)
+        $requestDTO = $this->validateRequest($requestBody);
+
+        // Decrypt and extract data from the request payload attribute
+        $data = $this->getDataFromRequest($requestDTO);
+
+        // Validate the extracted data (attributes, expiration, license validity)
+        $requestDataDTO = $this->validateRequestData($data);
+
+        // TODO: Add verifications to prevent license key sharing
+
+        // Attempt to create a new session or update an existant session and return the operation processed (created or updated)
+        return $this->createUpdateSession($requestDataDTO);
+    }
+
+    public function processTerminationRequest(array $requestBody): void
+    {
+        // Validate the json request (attributes, encryption)
+        $requestDTO = $this->validateRequest($requestBody);
+
+        // Decrypt and extract data from the request payload attribute
+        $data = $this->getDataFromRequest($requestDTO);
+
+        // Validate the extracted data (attributes, expiration, license validity)
+        $requestDataDTO = $this->validateRequestData($data);
+
+        $this->terminateSession($requestDataDTO);
     }
 }

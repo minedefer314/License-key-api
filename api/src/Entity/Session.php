@@ -84,6 +84,11 @@ class Session
         return $this->endDate;
     }
 
+    public function getDuration(): \DateInterval
+    {
+        return $this->date->diff($this->lastUpdated, true);
+    }
+
     public function isActive(): bool
     {
         return $this->active;

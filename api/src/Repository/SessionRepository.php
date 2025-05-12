@@ -21,19 +21,21 @@ class SessionRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('s')
             ->where('s.active = true')
             ->getQuery()
-            ->getArrayResult();
+            ->getResult();
     }
 
-    public function findActiveExpiredSessions(): array
+    public function findActiveExpiredSessions(?int $expirationDelay): array
     {
         $fiveMinutesAgo = new \DateTime();
-        $fiveMinutesAgo->modify('-5 minutes');
+        if ($expirationDelay !== null) {
+            $fiveMinutesAgo->modify("-" . $expirationDelay . " minutes");
+        }
 
         return $this->createQueryBuilder('s')
             ->where('s.active = true')
             ->andWhere('s.lastUpdated < :fiveMinutesAgo')
             ->setParameter('fiveMinutesAgo', $fiveMinutesAgo)
             ->getQuery()
-            ->getArrayResult();
+            ->getResult();
     }
 }
